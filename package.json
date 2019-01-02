@@ -1,0 +1,22 @@
+{
+  "name": "picture-shows",
+  "version": "1.0.0",
+  "description": "展示头像",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/genguxuanyin/picture-show.git"
+  },
+  "keywords": [
+    "picture-show"
+  ],
+  "author": "genguxuanyin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/genguxuanyin/picture-show/issues"
+  },
+  "homepage": "https://github.com/genguxuanyin/picture-show#readme"
+}

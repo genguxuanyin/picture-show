@@ -1,287 +1,260 @@
 (function () {
-    var _table = [
-        "img/1.jpg",
-        "img/2.jpg",
-        "img/3.jpg",
-        "img/4.jpg",
-        "img/5.jpg",
-        "img/6.jpg",
-        "img/7.jpg",
-        "img/8.jpg",
-        "img/9.jpg",
-        "img/10.jpg",
-        "img/11.jpg",
-        "img/12.jpg"
-    ];
-    var MAXNUMBER,RADIUS;
-    if( _table.length < 256 ){
-        MAXNUMBER = 256;
-        RADIUS = 800;
-    } else if(_table.length < 512){
-        MAXNUMBER = 512;
-        RADIUS = 1200;
-    } else {
-        MAXNUMBER = 1024;
-        RADIUS = 1600;
-    }
-    var table = [];
-    var camera, scene, renderer, stats;
-    var controls;
+    function WX3D(id = 'container', url = 'http://jsonplaceholder.typicode.com/users') {
+        this.table = [];
+        this.id = id;
+        this.url = url;
+        this.MAXNUMBER = 0;
+        this.RADIUS = 0;
 
-    var objects = [];
-    var targets = {
-        sphere1: [],
-        sphere2: []
-    };
-    initTable();
-    init();
-    animate();
+        this.camera = null;
+        this.scene = null;
+        this.renderer = null;
+        this.stats = null;
+        this.controls = null;
 
-    function initTable() {
-        var index;
-        for (let i = 0; i < MAXNUMBER; i++) {
-            index = parseInt(Math.random() * _table.length);
-            table.push(_table[index]);
-        }
+        this.objects = [];
+        this.targets = {
+            sphere: []
+        };
+        this.zoomState = 0;
     }
 
-    function init() {
+    Object.assign(WX3D.prototype, {
+        init: function () {
+            this.getData((data) => {
+                data = [
+                    { avatar: "img/1.jpg" },
+                    { avatar: "img/2.jpg" },
+                    { avatar: "img/3.jpg" },
+                    { avatar: "img/4.jpg" },
+                    { avatar: "img/5.jpg" },
+                    { avatar: "img/6.jpg" },
+                    { avatar: "img/7.jpg" },
+                    { avatar: "img/8.jpg" },
+                    { avatar: "img/9.jpg" },
+                    { avatar: "img/10.jpg" },
+                    { avatar: "img/11.jpg" },
+                    { avatar: "img/12.jpg" }
+                ];
+                if (data.length < 256) {
+                    this.MAXNUMBER = 256;
+                    this.RADIUS = 800;
+                } else if (data.length < 512) {
+                    this.MAXNUMBER = 512;
+                    this.RADIUS = 1000;
+                } else {
+                    this.MAXNUMBER = 1024;
+                    this.RADIUS = 1800;
+                }
+                var index;
+                for (let i = 0; i < this.MAXNUMBER; i++) {
+                    index = parseInt(Math.random() * data.length);
+                    this.table.push(data[index]);
+                }
+                this.initScene();
+                this.animate();
+            });
+        },
+        getData: function (callback) {
+            fetch(this.url)
+                .then(response => response.json())
+                .then(data => callback(data))
+                .catch(error => console.log('error is', error));
+        },
+        initScene: function () {
+            this.camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            this.camera.position.z = 1400 + this.RADIUS;
 
-        camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.z = 3000;
+            this.scene = new THREE.Scene();
 
-        scene = new THREE.Scene();
+            // table
 
-        // table
+            for (var i = 0; i < this.table.length; i++) {
 
-        for (var i = 0; i < table.length; i++) {
+                var element = document.createElement('div');
+                element.className = 'element';
+                element.style.background = `rgba(0,127,127,${(Math.random() * 0.5 + 0.25)}) url(${this.table[i].avatar}) no-repeat center center`;
+                element.style.backgroundSize = `100% 100%`;
 
-            var element = document.createElement('div');
-            element.className = 'element';
-            element.style.background = `rgba(0,127,127,${(Math.random() * 0.5 + 0.25)}) url(${table[i]}) no-repeat center center`;
-            element.style.backgroundSize = `100% 100%`;
+                var object = new THREE.CSS3DObject(element);
+                object.position.x = Math.random() * 4000 - 2000;
+                object.position.y = Math.random() * 4000 - 2000;
+                object.position.z = Math.random() * 4000 - 2000;
+                this.scene.add(object);
+                this.objects.push(object);
 
-            var object = new THREE.CSS3DObject(element);
-            object.position.x = Math.random() * 4000 - 2000;
-            object.position.y = Math.random() * 4000 - 2000;
-            object.position.z = Math.random() * 4000 - 2000;
-            scene.add(object);
+            }
 
-            objects.push(object);
+            // sphere
 
-        }
+            var vector = new THREE.Vector3();
+            var spherical = new THREE.Spherical();
 
-        // sphere1
+            for (var i = 0, l = this.objects.length; i < l; i++) {
 
-        var vector = new THREE.Vector3();
-        var spherical = new THREE.Spherical();
+                var phi = Math.acos(-1 + (2 * i) / l);
+                var theta = Math.sqrt(l * Math.PI) * phi;
 
-        for (var i = 0, l = objects.length; i < l; i++) {
+                var object = new THREE.Object3D();
 
-            var phi = Math.acos(-1 + (2 * i) / l);
-            var theta = Math.sqrt(l * Math.PI) * phi;
+                spherical.set(this.RADIUS, phi, theta);
 
-            var object = new THREE.Object3D();
+                object.position.setFromSpherical(spherical);
 
-            spherical.set(RADIUS, phi, theta);
+                vector.copy(object.position).multiplyScalar(2);
 
-            object.position.setFromSpherical(spherical);
+                object.lookAt(vector);
 
-            vector.copy(object.position).multiplyScalar(2);
+                this.targets.sphere.push(object);
 
-            object.lookAt(vector);
+            }
 
-            targets.sphere1.push(object);
+            this.renderer = new THREE.CSS3DRenderer();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById(this.id).appendChild(this.renderer.domElement);
 
-        }
-        // sphere2
+            this.stats = new Stats();
+            document.getElementById(this.id).appendChild(this.stats.dom);
 
-        var vector = new THREE.Vector3();
-        var spherical = new THREE.Spherical();
+            this.controls = new THREE.OrbitControls(this.camera);
+            this.controls.autoRotateSpeed = 4;
+            this.controls.rotateSpeed = 0.5;
+            this.controls.minDistance = 500;
+            this.controls.maxDistance = 6000;
+            this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.04;
+            this.controls.addEventListener('change', this.render.bind(this));
 
-        for (var i = 0, l = objects.length; i < l; i++) {
+            var button = document.getElementById('zoom');
+            button.addEventListener('click', () => {
 
-            var phi = Math.acos(-1 + (2 * i) / l);
-            var theta = Math.sqrt(l * Math.PI) * phi;
+                this.zoom();
 
-            var object = new THREE.Object3D();
+            }, false);
 
-            object.position.set(
-                RADIUS * Math.cos( theta ) * Math.sin( phi ),
-                RADIUS * Math.sin( theta ) * Math.sin( phi ),
-                RADIUS * Math.cos( phi )
-            );
+            var button = document.getElementById('rotate');
+            button.addEventListener('click', () => {
 
-            vector.copy(object.position).multiplyScalar(2);
+                this.rotate();
 
-            object.lookAt(vector);
+            }, false);
 
-            targets.sphere2.push(object);
+            this.transform(this.targets.sphere, 2000);
 
-        }
+            //
 
-        //
+            window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
-        renderer = new THREE.CSS3DRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('container').appendChild(renderer.domElement);
-
-        stats = new Stats();
-        document.getElementById('container').appendChild(stats.dom);
-
-        //
-
-        // controls = new THREE.TrackballControls(camera, renderer.domElement);
-        controls = new THREE.OrbitControls(camera);
-        controls.autoRotateSpeed = 4;
-        controls.rotateSpeed = 0.5;
-        controls.minDistance = 500;
-        controls.maxDistance = 6000;
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.16;
-        controls.addEventListener('change', render);
-
-        var button = document.getElementById('zoom');
-        var zoomState = 0;
-        button.addEventListener('click', function (event) {
-
-            var pos = camera.position;
+        },
+        zoom: function () {
+            var pos = this.camera.position;
             var duration = 2000;
-            if (zoomState == 0) {
+            if (this.zoomState == 0) {
                 new TWEEN.Tween(pos)
                     .to({
                         x: 0,
                         y: -120,
-                        z: 1800
+                        z: 200 + this.RADIUS
                     }, duration / 2)
-                    .onUpdate(render)
+                    .onUpdate(this.render.bind(this))
                     .start();
-                zoomState = 1;
+                this.zoomState = 1;
             } else {
                 new TWEEN.Tween(pos)
                     .to({
                         x: 0,
                         y: 0,
-                        z: 3000
+                        z: 1400 + this.RADIUS
                     }, duration / 4)
-                    .onUpdate(render)
+                    .onUpdate(this.render.bind(this))
                     .start();
-                zoomState = 0;
+                this.zoomState = 0;
             }
-
-        }, false);
-
-        var button = document.getElementById('rotate');
-        button.addEventListener('click', function (event) {
-            if (!controls.autoRotate) {
-                controls.autoRotate = true;
+        },
+        rotate: function () {
+            if (!this.controls.autoRotate) {
+                this.controls.autoRotate = true;
             }
-            if (controls.autoRotateSpeed == 4) {
-                controls.autoRotateSpeed = 0.5;
+            if (this.controls.autoRotateSpeed == 4) {
+                this.controls.autoRotateSpeed = 0.5;
             } else {
-                controls.autoRotateSpeed = 4;
+                this.controls.autoRotateSpeed = 4;
+            }
+        },
+        transform: function (targets, duration) {
+
+            TWEEN.removeAll();
+
+            for (var i = 0; i < this.objects.length; i++) {
+
+                var object = this.objects[i];
+                var target = targets[i];
+
+                new TWEEN.Tween(object.position)
+                    .to({
+                        x: target.position.x,
+                        y: target.position.y,
+                        z: target.position.z
+                    }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(object.rotation)
+                    .to({
+                        x: target.rotation.x,
+                        y: target.rotation.y,
+                        z: target.rotation.z
+                    }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
             }
 
-        }, false);
-
-        var button = document.getElementById('sphere1');
-        button.addEventListener('click', function (event) {
-
-            transform(targets.sphere1, 2000);
-
-        }, false);
-
-        var button = document.getElementById('sphere2');
-        button.addEventListener('click', function (event) {
-
-            transform(targets.sphere2, 2000);
-
-        }, false);
-
-        transform(targets.sphere1, 2000);
-
-        //
-
-        window.addEventListener('resize', onWindowResize, false);
-
-    }
-
-    function transform(targets, duration) {
-
-        TWEEN.removeAll();
-
-        for (var i = 0; i < objects.length; i++) {
-
-            var object = objects[i];
-            var target = targets[i];
-
-            new TWEEN.Tween(object.position)
-                .to({
-                    x: target.position.x,
-                    y: target.position.y,
-                    z: target.position.z
-                }, Math.random() * duration + duration)
-                .easing(TWEEN.Easing.Exponential.InOut)
+            new TWEEN.Tween(this)
+                .to({}, duration * 2)
+                .onUpdate(this.render)
                 .start();
 
-            new TWEEN.Tween(object.rotation)
+            //相机推进
+            /* var pos = camera.position;
+            new TWEEN.Tween(pos)
                 .to({
-                    x: target.rotation.x,
-                    y: target.rotation.y,
-                    z: target.rotation.z
-                }, Math.random() * duration + duration)
-                .easing(TWEEN.Easing.Exponential.InOut)
-                .start();
+                    x: 0,
+                    y: -120,
+                    z: 1200
+                }, duration / 2)
+                .onUpdate(render)
+                .delay(duration * 2)
+                .start().onComplete(function(){
+                    controls.autoRotate = true;
+                }); */
 
+        },
+        onWindowResize: function () {
+
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+            this.render();
+
+        },
+        animate: function () {
+
+            requestAnimationFrame(this.animate.bind(this));
+
+            TWEEN.update();
+
+            this.controls.update();
+
+        },
+        render: function () {
+            this.stats.begin();
+            this.renderer.render(this.scene, this.camera);
+            this.stats.end();
         }
-
-        new TWEEN.Tween(this)
-            .to({}, duration * 2)
-            .onUpdate(render)
-            .start();
-
-        //相机推进
-        /* var pos = camera.position;
-        new TWEEN.Tween(pos)
-            .to({
-                x: 0,
-                y: -120,
-                z: 1200
-            }, duration / 2)
-            .onUpdate(render)
-            .delay(duration * 2)
-            .start().onComplete(function(){
-                controls.autoRotate = true;
-            }); */
-
-    }
-
-    function onWindowResize() {
-
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
-
-        render();
-
-    }
-
-    function animate() {
-
-        requestAnimationFrame(animate);
-
-        TWEEN.update();
-
-        controls.update();
-
-    }
-
-    function render() {
-
-        stats.begin();
-        renderer.render(scene, camera);
-        stats.end();
-
-    }
+    })
+    var wx3d = new WX3D();
+    wx3d.init();
 })()

@@ -13,7 +13,17 @@
         "img/11.jpg",
         "img/12.jpg"
     ];
-    var MAXNUMBER = 1024;
+    var MAXNUMBER,RADIUS;
+    if( _table.length < 256 ){
+        MAXNUMBER = 256;
+        RADIUS = 800;
+    } else if(_table.length < 512){
+        MAXNUMBER = 512;
+        RADIUS = 1200;
+    } else {
+        MAXNUMBER = 1024;
+        RADIUS = 1600;
+    }
     var table = [];
     var camera, scene, renderer, stats;
     var controls;
@@ -73,7 +83,7 @@
 
             var object = new THREE.Object3D();
 
-            spherical.set(1600, phi, theta);
+            spherical.set(RADIUS, phi, theta);
 
             object.position.setFromSpherical(spherical);
 
@@ -85,7 +95,6 @@
 
         }
         // sphere2
-        var radius = 800;
 
         var vector = new THREE.Vector3();
         var spherical = new THREE.Spherical();
@@ -98,9 +107,9 @@
             var object = new THREE.Object3D();
 
             object.position.set(
-                radius * Math.cos( theta ) * Math.sin( phi ),
-                radius * Math.sin( theta ) * Math.sin( phi ),
-                radius * Math.cos( phi )
+                RADIUS * Math.cos( theta ) * Math.sin( phi ),
+                RADIUS * Math.sin( theta ) * Math.sin( phi ),
+                RADIUS * Math.cos( phi )
             );
 
             vector.copy(object.position).multiplyScalar(2);

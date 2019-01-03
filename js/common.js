@@ -13,17 +13,15 @@
         "img/11.jpg",
         "img/12.jpg"
     ];
-    var MAXNUMBER = 256;
+    var MAXNUMBER = 1024;
     var table = [];
     var camera, scene, renderer, stats;
     var controls;
 
     var objects = [];
     var targets = {
-        table: [],
-        sphere: [],
-        helix: [],
-        grid: []
+        sphere1: [],
+        sphere2: []
     };
     initTable();
     init();
@@ -61,17 +59,9 @@
 
             objects.push(object);
 
-            //
-
-            var object = new THREE.Object3D();
-            object.position.x = (i * 140) - 1330;
-            object.position.y = -(i * 180) + 990;
-
-            targets.table.push(object);
-
         }
 
-        // sphere
+        // sphere1
 
         var vector = new THREE.Vector3();
         var spherical = new THREE.Spherical();
@@ -83,7 +73,7 @@
 
             var object = new THREE.Object3D();
 
-            spherical.set(800, phi, theta);
+            spherical.set(1600, phi, theta);
 
             object.position.setFromSpherical(spherical);
 
@@ -91,47 +81,33 @@
 
             object.lookAt(vector);
 
-            targets.sphere.push(object);
+            targets.sphere1.push(object);
 
         }
-
-        // helix
+        // sphere2
+        var radius = 800;
 
         var vector = new THREE.Vector3();
-        var cylindrical = new THREE.Cylindrical();
+        var spherical = new THREE.Spherical();
 
         for (var i = 0, l = objects.length; i < l; i++) {
 
-            var theta = i * 0.175 + Math.PI;
-            var y = -(i * 8) + 450;
+            var phi = Math.acos(-1 + (2 * i) / l);
+            var theta = Math.sqrt(l * Math.PI) * phi;
 
             var object = new THREE.Object3D();
 
-            cylindrical.set(900, theta, y);
+            object.position.set(
+                radius * Math.cos( theta ) * Math.sin( phi ),
+                radius * Math.sin( theta ) * Math.sin( phi ),
+                radius * Math.cos( phi )
+            );
 
-            object.position.setFromCylindrical(cylindrical);
-
-            vector.x = object.position.x * 2;
-            vector.y = object.position.y;
-            vector.z = object.position.z * 2;
+            vector.copy(object.position).multiplyScalar(2);
 
             object.lookAt(vector);
 
-            targets.helix.push(object);
-
-        }
-
-        // grid
-
-        for (var i = 0; i < objects.length; i++) {
-
-            var object = new THREE.Object3D();
-
-            object.position.x = ((i % 5) * 400) - 800;
-            object.position.y = (-(Math.floor(i / 5) % 5) * 400) + 800;
-            object.position.z = (Math.floor(i / 25)) * 1000 - 2000;
-
-            targets.grid.push(object);
+            targets.sphere2.push(object);
 
         }
 
@@ -147,44 +123,73 @@
         //
 
         // controls = new THREE.TrackballControls(camera, renderer.domElement);
-        controls = new THREE.OrbitControls( camera );
-        controls.autoRotateSpeed = 3;
+        controls = new THREE.OrbitControls(camera);
+        controls.autoRotateSpeed = 4;
         controls.rotateSpeed = 0.5;
         controls.minDistance = 500;
         controls.maxDistance = 6000;
         controls.enableDamping = true;
-		controls.dampingFactor = 0.16;
+        controls.dampingFactor = 0.16;
         controls.addEventListener('change', render);
-        console.log('init',controls);
-        var button = document.getElementById('table');
+
+        var button = document.getElementById('zoom');
+        var zoomState = 0;
         button.addEventListener('click', function (event) {
 
-            transform(targets.table, 2000);
+            var pos = camera.position;
+            var duration = 2000;
+            if (zoomState == 0) {
+                new TWEEN.Tween(pos)
+                    .to({
+                        x: 0,
+                        y: -120,
+                        z: 1800
+                    }, duration / 2)
+                    .onUpdate(render)
+                    .start();
+                zoomState = 1;
+            } else {
+                new TWEEN.Tween(pos)
+                    .to({
+                        x: 0,
+                        y: 0,
+                        z: 3000
+                    }, duration / 4)
+                    .onUpdate(render)
+                    .start();
+                zoomState = 0;
+            }
 
         }, false);
 
-        var button = document.getElementById('sphere');
+        var button = document.getElementById('rotate');
         button.addEventListener('click', function (event) {
-
-            transform(targets.sphere, 2000);
+            if (!controls.autoRotate) {
+                controls.autoRotate = true;
+            }
+            if (controls.autoRotateSpeed == 4) {
+                controls.autoRotateSpeed = 0.5;
+            } else {
+                controls.autoRotateSpeed = 4;
+            }
 
         }, false);
 
-        var button = document.getElementById('helix');
+        var button = document.getElementById('sphere1');
         button.addEventListener('click', function (event) {
 
-            transform(targets.helix, 2000);
+            transform(targets.sphere1, 2000);
 
         }, false);
 
-        var button = document.getElementById('grid');
+        var button = document.getElementById('sphere2');
         button.addEventListener('click', function (event) {
 
-            transform(targets.grid, 2000);
+            transform(targets.sphere2, 2000);
 
         }, false);
 
-        transform(targets.sphere, 2000);
+        transform(targets.sphere1, 2000);
 
         //
 
@@ -227,7 +232,7 @@
             .start();
 
         //相机推进
-        var pos = camera.position;
+        /* var pos = camera.position;
         new TWEEN.Tween(pos)
             .to({
                 x: 0,
@@ -238,7 +243,7 @@
             .delay(duration * 2)
             .start().onComplete(function(){
                 controls.autoRotate = true;
-            });
+            }); */
 
     }
 
@@ -264,7 +269,7 @@
     }
 
     function render() {
-        
+
         stats.begin();
         renderer.render(scene, camera);
         stats.end();
